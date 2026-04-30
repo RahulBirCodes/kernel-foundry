@@ -9,11 +9,10 @@ __global__ void vecAdd(float* A, float* B, float* C, int n) {
 }
 
 int main() {
-    const int n = 2000;
-
-    float h_A[n];
-    float h_B[n];
-    float h_C[n];
+    const int n = 1000000;
+    float* h_A = new float[n];
+    float* h_B = new float[n];
+    float* h_C = new float[n];
 
     for (int i = 0; i < n; i++) {
         h_A[i] = 2 * i + 1;
@@ -32,23 +31,23 @@ int main() {
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);
 
-    int threadsPerBlock = prop.maxThreadsPerBlock;
-    if (threadsPerBlock > n) {
-        threadsPerBlock = n;
-    }
+    // Hardcode 256 rather than using 1024 ceiling on T4 as a good process and for future
+    // if this block stalls on memory then we can swap with other block and get better utilization
+    int threadsPerBlock = 256
+    // int threadsPerBlock = prop.maxThreadsPerBlock;
+    // if (threadsPerBlock > n) {
+    //     threadsPerBlock = n;
+    // }
     int blocks = (n + threadsPerBlock - 1) / threadsPerBlock;
 
     std::cout << "Max threads per block: " << prop.maxThreadsPerBlock << std::endl;
     std::cout << "Launching " << blocks << " blocks of " << threadsPerBlock << " threads" << std::endl;
 
     vecAdd<<<blocks, threadsPerBlock>>>(d_A, d_B, d_C, n);
+
     cudaDeviceSynchronize();
 
     cudaMemcpy(h_C, d_C, n * sizeof(float), cudaMemcpyDeviceToHost);
-
-    for (int i = 0; i < n; i++) {
-        std::cout << h_A[i] << " + " << h_B[i] << " = " << h_C[i] << std::endl;
-    }
 
     cudaFree(d_A);
     cudaFree(d_B);
