@@ -7,8 +7,10 @@
 // A(m, n) x B(n, k)
 #define TILE_WIDTH 16
 __global__ void tiledMatMul(float* A, float* B, float* C, int m, int n, int k) {
-    __shared__ float Ads[TILE_WIDTH][TILE_WIDTH];
-    __shared__ float Bds[TILE_WIDTH][TILE_WIDTH];
+    extern __shared__ float shared[];
+    float (*Ads)[TILE_WIDTH] = reinterpret_cast<float (*)[TILE_WIDTH]>(shared);
+    float (*Bds)[TILE_WIDTH] =
+        reinterpret_cast<float (*)[TILE_WIDTH]>(shared + TILE_WIDTH * TILE_WIDTH);
 
     int bx = blockIdx.x;
     int by = blockIdx.y;
